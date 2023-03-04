@@ -6,6 +6,7 @@
  * <Put your name(s) and NetID(s) here>
  */
 
+#define _GNU_SOURCE
 #include <sys/types.h>
 #include <sys/wait.h>
 
@@ -60,6 +61,21 @@ extern char **environ;             // defined by libc
 static char prompt[] = "tsh> ";    // command line prompt (DO NOT CHANGE)
 static bool verbose = false;       // If true, print additional output.
 
+/**
+ * Michelle Pang made variables
+*/
+const char *search_path;
+
+/**
+ * Linked list structure for directory list
+*/
+struct ptrNode
+{
+	char *ptr;
+	struct ptrNode *next;
+};
+static char **dir_list; // stores directories from search path
+static int num_dirs; // number of directories found in the search path
 /*
  * The following array can be used to map a signal number to its name.
  * This mapping is valid for x86(-64)/Linux systems, such as CLEAR.
@@ -275,17 +291,112 @@ main(int argc, char **argv)
  * when we type ctrl-c (ctrl-z) at the keyboard.  
  *
  * Requires:
- *   <to be filled in by the student(s)>
+ *   A valid command line.
  *
  * Effects:
- *   <to be filled in by the student(s)>
+ *   If the user has requested a built-in command, execute it immediately.  
+ *   Otherwise, fork a child process and run the job in the context of the 
+ *   child.  If the job is running in the foreground, wait for it to terminate 
+ *   and then return.
  */
 static void
 eval(const char *cmdline) 
 {
+	/**
+	 * Initilization
+	*/
+	char *argv[MAXARGS];
+	char buf[MAXLINE];
+	int bg, i;
+	pid_t pid;
+	sigset_t mask, prev_mask;
 
-	// Prevent an "unused parameter" warning.  REMOVE THIS STATEMENT!
-	(void)cmdline;
+	/**
+	 * Parse command line and checks if it‘s a background or foreground job
+	*/
+	strcpy(buf, cmdline);
+	bg = parseline(buf, argv);
+
+	if(argv[0] == NULL)
+	{
+		return;
+	}
+	if (builtin_cmd(argv))
+	{
+		// Block all incoming SIGCHILD signals
+		sigemptyset(&mask);
+		sigaddset(&mask, SIGCHLD);
+		sigprocmask(SIG_BLOCK, &mask, &prev_mask);
+
+		if ((pid = fork()) == 0)
+		{
+			// Child process.
+			sigprocmask(SIG_SETMASK, &mask, NULL);
+			if (verbose)
+				printf("in pid == 0");
+			// ‘name' is not a directory and the search path is 
+			//not NULL.
+			if ((strchr(argv[0], '/') == NULL && dir_list != NULL))
+			{
+				if (verbose)
+					printf("not a directory");
+				setpgid(0,0);
+
+				for (i = 0; i < num_dirs; i++)
+				{
+					// Process th path for execution.
+					char cur_path[strlen(dir_list[i]) + 1 + sizeof(argv[0])];
+
+					strcpy(cur_path, dir_list[i]);
+					strcat(cur_path, "/");
+					strcat(cur_path, argv[0]);
+
+					// Try to execute, go on to next loop iteration 
+					//if does not work
+					execve(cur_path, argv, environ);
+				}
+				printf("%s: Command not found!\n", argv[0]);
+				exit(0);
+			}
+			if (strchr(argv[0], '/') != NULL || dir_list == NULL)
+			{
+				setpgid(0, 0);
+				// Handles case when execution fails
+				//as directory is not executable.
+				if (execve(argv[0], argv, environ) < 0) 
+				{
+					printf("%s: Command not found.\n", argv[0]);
+					exit(0);
+				}
+			}
+		}
+		/* Parent waits for foreground job to terminate and then reap. */
+		if (!bg) 
+		{	
+			if (verbose)
+				printf("Inside !bg.\n");
+			// Foreground job
+			addjob(jobs, pid, FG, cmdline); //Add the job.
+			sigprocmask(SIG_SETMASK, &prev_mask, NULL); //Set mask.
+
+			waitfg(pid); //Wait for foreground job to finish execution.
+			if(verbose)
+				printf("Exit !bg.\n");
+		}
+		else
+		{
+			if (verbose)
+				printf("Inside !fg.\n");
+			// Background job.
+			addjob(jobs, pid, BG, cmdline);
+			sigprocmask(SIG_SETMASK, &prev_mask, NULL); //Set mask.
+			// Print job immediately.
+			printf("[%d] (%d) %s", pid2jid(pid), pid, cmdline);
+
+			if(verbose)
+				printf("Exit !fg.\n");
+		}
+	}
 }
 
 /* 
@@ -362,10 +473,10 @@ parseline(const char *cmdline, char **argv)
  *  it immediately.  
  *
  * Requires:
- *   <to be filled in by the student(s)>
- *
+ * 	argv from parseline.
+ * 
  * Effects:
- *   <to be filled in by the student(s)>
+ *   Executes immediately if user typed a built-in command. 
  *
  * Note:
  *   In the textbook, this function has the return type "int", but "bool"
@@ -374,11 +485,26 @@ parseline(const char *cmdline, char **argv)
 static bool
 builtin_cmd(char **argv) 
 {
-
-	// Prevent an "unused parameter" warning.  REMOVE THIS STATEMENT!
-	(void)argv;
-	return (false);     // This is not a built-in command.
+	if (!strcmp(argv[0], "quit")) /* quit command */
+		exit(0);
+	if (!strcmp(argv[0], "&")) /* Ignore singleton & */
+	{
+		listjobs(jobs);
+		return (1);
+	} 
+	if (!strcmp(argv[0], "fg")) 
+	{
+		do_bgfg(argv);
+		return (1);
+	} 
+	if (!strcmp(argv[0], "bg")) /* Ignore singleton & */
+	{
+		do_bgfg(argv);
+		return (1);
+	} 
+	return (0); /* Not a builtin command */
 }
+
 
 /* 
  * do_bgfg - Execute the built-in bg and fg commands.
@@ -422,14 +548,55 @@ waitfg(pid_t pid)
  *   "pathstr" is a valid search path.
  *
  * Effects:
- *   <to be filled in by the student(s)>
+ *   Perform all necessary initilization of the search path
  */
 static void
 initpath(const char *pathstr)
 {
 
-	// Prevent an "unused parameter" warning.  REMOVE THIS STATEMENT!
-	(void)pathstr;
+	if (verbose)
+		printf("\nEnter Function: initpath.\n");
+	if (verbose)
+		printf("----\n");
+	if(verbose)
+		printf("The Original Path: %s\n", pathstr);
+
+	int path_length = 0; //number of paths
+
+	// Mallocate a directory list using linked list structure.
+	struct ptrNode *temp_dir_list = malloc(sizeof(struct ptrNode));
+	struct ptrNode *node = temp_dir_list;
+	// Each directory is separated by ':' character.
+	if ((strlen(pathstr) == 0) || (pathstr[0] == ':') || (pathstr[strlen(pathstr) - 1] == ':'))
+	{
+		path_length ++;
+		node -> ptr = get_current_dir_name();
+		node -> next = malloc(sizeof(struct ptrNode));
+		node = node -> next;
+	}
+
+	// Set global directory list.
+	dir_list = malloc(sizeof(char *) *path_length);
+	num_dirs = path_length;
+	struct ptrNode *prev;
+
+	// Copy to global list.
+	for (int i = 0; i < path_length; i++)
+	{
+		dir_list[i] = temp_dir_list -> ptr;
+		prev = temp_dir_list;
+		temp_dir_list = temp_dir_list -> next;
+		free(prev);
+	}
+
+	// Set global search path.
+	search_path = pathstr;
+
+	if (verbose)
+		printf("End of initpath.\n");
+	if (verbose)
+		printf("----\n\n");
+
 }
 
 /*

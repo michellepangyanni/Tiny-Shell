@@ -510,17 +510,70 @@ builtin_cmd(char **argv)
  * do_bgfg - Execute the built-in bg and fg commands.
  *
  * Requires:
- *   <to be filled in by the student(s)>
+ *   "argv" is an array consists of arguments passed to a program through 
+ *    the command line.
  *
  * Effects:
- *   <to be filled in by the student(s)>
+ *   Implement Bg command: Change a stopped job to running background job and
+ *   Fg command: Change a stopped or running background job to a running 
+ *   job in foreground.
  */
 static void
 do_bgfg(char **argv) 
 {
+	// Initialize variables.
+	char *command = argv[0];
+	char *job = argv[1];
+	bool is_Pid;
+	JobP job_point; 
 
-	// Prevent an "unused parameter" warning.  REMOVE THIS STATEMENT!
-	(void)argv;
+
+	// Check existence of job.
+	if (!job) {
+		printf("lack of second command argument.");
+		return;
+	}
+
+	// Determine Pid or Jid.
+	if (job[0] == '%') {	// Jid
+		is_Pid = false;
+		job_point = getjobjid(jobs, atoi(job));
+		if (!job_point) {
+			printf("Not valid Jid.");
+			return;
+		}
+	} 
+	else if (isdigit(job[0])) {	// Pid
+		is_Pid = true;
+		job_point = getjobpid(jobs, (pid_t)atoi(job));
+		if (!job_point) {
+			printf("Not valid Pid.");
+			return;
+		}
+	} else {
+		printf("Not Pid or Jid.");
+		return;
+	}
+
+	// Bg command: Change a stopped job to running background job.
+	if (!strcmp(job, "bg")) {
+		job_point->state = BG;
+		kill(-job_point->pid, SIGCONT);
+		fprintf(stdout, "[%d] (%d) %s", job_point->jid, 
+		    job_point->pid, job_point->cmdline);
+	} 
+
+	/*
+	 * Fg command: Change a stopped or running background job to a running 
+	 * job in foreground.
+	 */
+	else if (!strcmp(job, "fg")) {
+		job_point->state = FG;
+		waitfg(job_point->pid);
+		kill(-job_point->pid, SIGCONT);
+	} else {
+		return;
+	}
 }
 
 /* 
@@ -535,9 +588,13 @@ do_bgfg(char **argv)
 static void
 waitfg(pid_t pid)
 {
+	sigset_t suspend_mask;
 
-	// Prevent an "unused parameter" warning.  REMOVE THIS STATEMENT!
-	(void)pid;
+	while (fgpid(jobs) == pid) {
+		sigsuspend(&suspend_mask);
+	}
+
+	return;
 }
 
 /* 
@@ -638,11 +695,15 @@ sigchld_handler(int signum)
 static void
 sigint_handler(int signum)
 {
+	assert(signum == SIGINT);
+	pid_t pid = fgpid(jobs);
 
-	// Prevent an "unused parameter" warning.
-	(void)signum;
+	if (pid != 0) {
+		kill(-pid, SIGINT);
+	}
+	
+	return;
 }
-
 /*
  * sigtstp_handler - The kernel sends a SIGTSTP to the shell whenever
  *  the user types ctrl-z at the keyboard.  Catch it and suspend the
@@ -657,9 +718,14 @@ sigint_handler(int signum)
 static void
 sigtstp_handler(int signum)
 {
+	assert(signum == SIGTSTP);
+	pid_t pid = fgpid(jobs);
 
-	// Prevent an "unused parameter" warning.
-	(void)signum;
+	if (pid != 0) {
+		kill(-pid, SIGTSTP);
+	}
+
+	return;
 }
 
 /*

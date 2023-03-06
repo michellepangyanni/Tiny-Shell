@@ -597,7 +597,13 @@ static void
 waitfg(pid_t pid)
 {
 	sigset_t suspend_mask;
-	
+	sigemptyset(&suspend_mask);
+
+	JobP job = getjobpid(jobs, pid);
+	if (!job)
+		return;
+
+
 	while (fgpid(jobs) == pid) {
 		sigsuspend(&suspend_mask);
 	}
@@ -711,12 +717,9 @@ sigchld_handler(int signum)
 			Sio_puts(") terminated by signal SIG");
 			Sio_puts(signame[WSTOPSIG(status)]);
 			Sio_puts("\n");
-			deletejob(jobs, pid);
+			getjobpid(jobs, pid)->state = ST;
 		}
 
-		else {
-			deletejob(jobs, pid);
-		}
 	}
 
 	if (pid < 0 && errno != ECHILD)

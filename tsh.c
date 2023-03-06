@@ -1252,4 +1252,3 @@ Sio_error(const char s[])
 static const void *dummy_ref[] = { Sio_error, Sio_putl, addjob, builtin_cmd,
     deletejob, do_bgfg, dummy_ref, fgpid, getjobjid, getjobpid, listjobs,
     parseline, pid2jid, signame, waitfg };
-

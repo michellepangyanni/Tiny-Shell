@@ -596,6 +596,11 @@ do_bgfg(char **argv)
 static void
 waitfg(pid_t pid)
 {
+	if (verbose)
+		printf("\nEnter Function: waitfg.\n");
+
+	if (verbose)
+		printf("----\n");
 	sigset_t suspend_mask;
 	sigemptyset(&suspend_mask);
 
@@ -605,6 +610,8 @@ waitfg(pid_t pid)
 
 
 	while (fgpid(jobs) == pid) {
+		if (verbose)
+			printf("in while loop....\n");
 		sigsuspend(&suspend_mask);
 	}
 

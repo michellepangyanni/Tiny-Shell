@@ -567,7 +567,7 @@ do_bgfg(char **argv)
 	if (!strcmp(job, "bg")) {
 		job_point->state = BG;
 		kill(-job_point->pid, SIGCONT);
-		fprintf(stdout, "[%d] (%d) %s", job_point->jid, 
+		printf(stdout, "[%d] (%d) %s", job_point->jid, 
 		    job_point->pid, job_point->cmdline);
 	} 
 

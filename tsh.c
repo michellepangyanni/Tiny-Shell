@@ -329,7 +329,8 @@ eval(const char *cmdline)
 	{
 		return;
 	}
-	if (builtin_cmd(argv))
+	
+	if (!builtin_cmd(argv))
 	{
 		// Block all incoming SIGCHILD signals
 		sigemptyset(&mask);
@@ -339,7 +340,7 @@ eval(const char *cmdline)
 		if ((pid = fork()) == 0)
 		{
 			// Child process.
-			sigprocmask(SIG_SETMASK, &mask, NULL);
+			sigprocmask(SIG_SETMASK, &prev_mask, NULL);
 			if (verbose)
 				printf("in pid == 0");
 			// ‘name' is not a directory and the search path is 
@@ -495,11 +496,13 @@ builtin_cmd(char **argv)
 {
 	if (!strcmp(argv[0], "quit")) /* quit command */
 		exit(0);
-	if (!strcmp(argv[0], "&")) /* Ignore singleton & */
+		
+	if (!strcmp(argv[0], "jobs"))
 	{
 		listjobs(jobs);
 		return (1);
-	} 
+	}
+
 	if (!strcmp(argv[0], "fg")) 
 	{
 		do_bgfg(argv);
@@ -530,7 +533,7 @@ static void
 do_bgfg(char **argv) 
 {
 	// Initialize variables.
-	// char *command = argv[0];
+	char *command = argv[0];
 	char *job = argv[1];
 	// bool is_Pid;
 	JobP job_point; 
@@ -545,7 +548,7 @@ do_bgfg(char **argv)
 	// Determine Pid or Jid.
 	if (job[0] == '%') {	// Jid
 		// is_Pid = false;
-		job_point = getjobjid(jobs, atoi(strchr(argv[1], '%') + 1));
+		job_point = getjobjid(jobs, atoi(strchr(job, '%') + 1));
 		if (!job_point) {
 			printf("Not valid Jid.");
 			return;
@@ -564,10 +567,10 @@ do_bgfg(char **argv)
 	}
 
 	// Bg command: Change a stopped job to running background job.
-	if (!strcmp(job, "bg")) {
+	if (!strcmp(command, "bg")) {
 		job_point->state = BG;
 		kill(-job_point->pid, SIGCONT);
-		printf(stdout, "[%d] (%d) %s", job_point->jid, 
+		fprintf(stdout, "[%d] (%d) %s", job_point->jid, 
 		    job_point->pid, job_point->cmdline);
 	} 
 
@@ -575,7 +578,7 @@ do_bgfg(char **argv)
 	 * Fg command: Change a stopped or running background job to a running 
 	 * job in foreground.
 	 */
-	else if (!strcmp(job, "fg")) {
+	else if (!strcmp(command, "fg")) {
 		job_point->state = FG;
 		waitfg(job_point->pid);
 		kill(-job_point->pid, SIGCONT);
@@ -714,16 +717,13 @@ sigchld_handler(int signum)
 			Sio_putl(pid2jid(pid));
 			Sio_puts("] (");
 			Sio_putl(pid);
-			Sio_puts(") terminated by signal SIG");
+			Sio_puts(") stopped by signal SIG");
 			Sio_puts(signame[WSTOPSIG(status)]);
 			Sio_puts("\n");
 			getjobpid(jobs, pid)->state = ST;
 		}
 
 	}
-
-	if (pid < 0 && errno != ECHILD)
-		unix_error("chld-waitpid error");
 }
 
 /* 

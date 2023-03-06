@@ -530,9 +530,9 @@ static void
 do_bgfg(char **argv) 
 {
 	// Initialize variables.
-	char *command = argv[0];
+	// char *command = argv[0];
 	char *job = argv[1];
-	bool is_Pid;
+	// bool is_Pid;
 	JobP job_point; 
 
 
@@ -544,7 +544,7 @@ do_bgfg(char **argv)
 
 	// Determine Pid or Jid.
 	if (job[0] == '%') {	// Jid
-		is_Pid = false;
+		// is_Pid = false;
 		job_point = getjobjid(jobs, atoi(job));
 		if (!job_point) {
 			printf("Not valid Jid.");
@@ -552,7 +552,7 @@ do_bgfg(char **argv)
 		}
 	} 
 	else if (isdigit(job[0])) {	// Pid
-		is_Pid = true;
+		// is_Pid = true;
 		job_point = getjobpid(jobs, (pid_t)atoi(job));
 		if (!job_point) {
 			printf("Not valid Pid.");
@@ -688,11 +688,11 @@ sigchld_handler(int signum)
 	pid_t pid;
 	int status;
 
-	while (pid = waitpid(-1, &status, WNOHANG | WUNTRACED) > 0) {
+	while ((pid = waitpid(-1, &status, WNOHANG | WUNTRACED)) > 0) {
 		if (WIFEXITED(status))
 			deletejob(jobs, pid);
 
-		else if (WIFESIGNALED(status)) {
+		else if (WIFSIGNALED(status)) {
 			Sio_puts("Job [");
 			Sio_putl(pid2jid(pid));
 			Sio_puts("] (");

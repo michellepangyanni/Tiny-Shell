@@ -210,6 +210,8 @@ main(int argc, char **argv)
 	action.sa_flags = SA_RESTART;
 	if (sigemptyset(&action.sa_mask) < 0)
 		unix_error("sigemptyset error");
+	if (sigaddset(&action.sa_mask, SIGCHLD) == -1) 
+		unix_error("sigaddset error in main");
 	if (sigaction(SIGINT, &action, NULL) < 0)
 		unix_error("sigaction error");
 
@@ -222,6 +224,8 @@ main(int argc, char **argv)
 	action.sa_flags = SA_RESTART;
 	if (sigemptyset(&action.sa_mask) < 0)
 		unix_error("sigemptyset error");
+	if (sigaddset(&action.sa_mask, SIGCHLD) == -1) 
+		unix_error("sigaddset error in main");
 	if (sigaction(SIGTSTP, &action, NULL) < 0)
 		unix_error("sigaction error");
 
@@ -234,6 +238,10 @@ main(int argc, char **argv)
 	action.sa_flags = SA_RESTART;
 	if (sigemptyset(&action.sa_mask) < 0)
 		unix_error("sigemptyset error");
+	if (sigaddset(&action.sa_mask, SIGINT) == -1) 
+		unix_error("sigaddset error in main");
+	if (sigaddset(&action.sa_mask, SIGTSTP) == -1) 
+		unix_error("sigaddset error in main");
 	if (sigaction(SIGCHLD, &action, NULL) < 0)
 		unix_error("sigaction error");
 

@@ -3,7 +3,7 @@
  *
  * This program implements a tiny shell with job control.
  *
- * <Put your name(s) and NetID(s) here>
+ * <Michelle Pang, yp29; Lily Gao, qg8>
  */
 
 #define _GNU_SOURCE
@@ -597,7 +597,7 @@ static void
 waitfg(pid_t pid)
 {
 	sigset_t suspend_mask;
-
+	
 	while (fgpid(jobs) == pid) {
 		sigsuspend(&suspend_mask);
 	}

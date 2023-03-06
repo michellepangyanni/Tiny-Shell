@@ -545,7 +545,7 @@ do_bgfg(char **argv)
 	// Determine Pid or Jid.
 	if (job[0] == '%') {	// Jid
 		// is_Pid = false;
-		job_point = getjobjid(jobs, atoi(job));
+		job_point = getjobjid(jobs, atoi(strchr(argv[1], '%') + 1));
 		if (!job_point) {
 			printf("Not valid Jid.");
 			return;

@@ -676,9 +676,43 @@ initpath(const char *pathstr)
 static void
 sigchld_handler(int signum)
 {
+	assert(signum == SIGCHLD);
+	pid_t pid;
+	int status;
 
-	// Prevent an "unused parameter" warning.
-	(void)signum;
+	while (pid = waitpid(-1, &status, WNOHANG | WUNTRACED) > 0) {
+		if (WIFEXITED(status))
+			deletejob(jobs, pid);
+
+		else if (WIFESIGNALED(status)) {
+			Sio_puts("Job [");
+			Sio_putl(pid2jid(pid));
+			Sio_puts("] (");
+			Sio_putl(pid);
+			Sio_puts(") terminated by signal SIG");
+			Sio_puts(signame[WTERMSIG(status)]);
+			Sio_puts("\n");
+			deletejob(jobs, pid);
+		}
+
+		else if (WIFSTOPPED(status)) {
+			Sio_puts("Job [");
+			Sio_putl(pid2jid(pid));
+			Sio_puts("] (");
+			Sio_putl(pid);
+			Sio_puts(") terminated by signal SIG");
+			Sio_puts(signame[WSTOPSIG(status)]);
+			Sio_puts("\n");
+			deletejob(jobs, pid);
+		}
+
+		else {
+			deletejob(jobs, pid);
+		}
+	}
+
+	if (pid < 0 && errno != ECHILD)
+		unix_error("chld-waitpid error");
 }
 
 /* 
@@ -701,7 +735,7 @@ sigint_handler(int signum)
 	if (pid != 0) {
 		kill(-pid, SIGINT);
 	}
-	
+
 	return;
 }
 /*

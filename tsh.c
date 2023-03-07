@@ -354,7 +354,7 @@ eval(const char *cmdline)
 				for (i = 0; i < num_dirs; i++)
 				{
 					// Process th path for execution.
-					char cur_path[strlen(dir_list[i]) + 1 + sizeof(argv[0])];
+					char cur_path[strlen(dir_list[i]) + 2 + sizeof(argv[0])];
 
 					strcpy(cur_path, dir_list[i]);
 					strcat(cur_path, "/");

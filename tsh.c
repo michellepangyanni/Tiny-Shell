@@ -162,10 +162,10 @@ static size_t	sio_strlen(const char s[]);
 
 /*
  * Requires:
- *   <to be filled in by the student(s)>
+ *   Nothing.
  *
  * Effects:
- *   <to be filled in by the student(s)>
+ *   Performs the read-evaluate/execute loop.
  */
 int
 main(int argc, char **argv) 
@@ -299,7 +299,7 @@ main(int argc, char **argv)
  * when we type ctrl-c (ctrl-z) at the keyboard.  
  *
  * Requires:
- *   A valid command line.
+ *   "cmdline" is an valid command line.
  *
  * Effects:
  *   If the user has requested a built-in command, execute it immediately.  
@@ -532,10 +532,9 @@ builtin_cmd(char **argv)
 static void
 do_bgfg(char **argv) 
 {
-	// Initialize variables.
+	// Initialization.
 	char *command = argv[0];
 	char *job = argv[1];
-	// bool is_Pid;
 	JobP job_point; 
 
 
@@ -547,28 +546,38 @@ do_bgfg(char **argv)
 
 	// Determine Pid or Jid.
 	if (job[0] == '%') {	// Jid
-		// is_Pid = false;
+		
+		// Get jid job.
 		job_point = getjobjid(jobs, atoi(strchr(job, '%') + 1));
+
+		// Check job not null.
 		if (!job_point) {
 			printf("Not valid Jid.");
 			return;
 		}
 	} 
 	else if (isdigit(job[0])) {	// Pid
-		// is_Pid = true;
+		
+		// Get pid job.
 		job_point = getjobpid(jobs, (pid_t)atoi(job));
+
+		// Check job not null.
 		if (!job_point) {
 			printf("Not valid Pid.");
 			return;
 		}
-	} else {
+	} else {      // Not pid or jid.
 		printf("Not Pid or Jid.");
 		return;
 	}
 
 	// Bg command: Change a stopped job to running background job.
 	if (!strcmp(command, "bg")) {
+
+		// Change job state to bg.
 		job_point->state = BG;
+
+		// Kill, send SIGCONT signal and format output.
 		kill(-job_point->pid, SIGCONT);
 		fprintf(stdout, "[%d] (%d) %s", job_point->jid, 
 		    job_point->pid, job_point->cmdline);
@@ -579,7 +588,11 @@ do_bgfg(char **argv)
 	 * job in foreground.
 	 */
 	else if (!strcmp(command, "fg")) {
+
+		// Change job state to fg.
 		job_point->state = FG;
+
+		// Wait foreground job and kill, send SIGCONT signal.
 		waitfg(job_point->pid);
 		kill(-job_point->pid, SIGCONT);
 	} else {
@@ -591,22 +604,24 @@ do_bgfg(char **argv)
  * waitfg - Block until process pid is no longer the foreground process.
  *
  * Requires:
- *   <to be filled in by the student(s)>
+ *   "pid" is a valid process ID.
  *
  * Effects:
- *   <to be filled in by the student(s)>
+ *   Waits for a foreground job to complete.
  */
 static void
 waitfg(pid_t pid)
 {
+	// Initialization.
 	sigset_t suspend_mask;
 	sigemptyset(&suspend_mask);
 
+	// Make sure the job is not null.
 	JobP job = getjobpid(jobs, pid);
 	if (!job)
 		return;
 
-
+	// Wait for the foreground job.
 	while (fgpid(jobs) == pid) {
 		sigsuspend(&suspend_mask);
 	}
@@ -622,7 +637,7 @@ waitfg(pid_t pid)
  *   "pathstr" is a valid search path.
  *
  * Effects:
- *   Perform all necessary initilization of the search path
+ *   Perform all necessary initilization of the search path.
  */
 static void
 initpath(const char *pathstr)
@@ -685,23 +700,33 @@ initpath(const char *pathstr)
  *  currently running children to terminate.  
  *
  * Requires:
- *   <to be filled in by the student(s)>
+ *   "signum" is a valid signal.
  *
  * Effects:
- *   <to be filled in by the student(s)>
+ *   Catches SIGCHILD signals.
  */
 static void
 sigchld_handler(int signum)
 {
+
+	// Avoid unused parameter warning.
 	assert(signum == SIGCHLD);
+
+	// Initialization.
 	pid_t pid;
 	int status;
 
+	// Reap all zombie children.
 	while ((pid = waitpid(-1, &status, WNOHANG | WUNTRACED)) > 0) {
+
+		// Proper termination case.
 		if (WIFEXITED(status))
 			deletejob(jobs, pid);
 
+		// Termination due to signal case.
 		else if (WIFSIGNALED(status)) {
+
+			// Using Sio_put to format output.
 			Sio_puts("Job [");
 			Sio_putl(pid2jid(pid));
 			Sio_puts("] (");
@@ -709,10 +734,15 @@ sigchld_handler(int signum)
 			Sio_puts(") terminated by signal SIG");
 			Sio_puts(signame[WTERMSIG(status)]);
 			Sio_puts("\n");
+
+			// Termination and delete job.
 			deletejob(jobs, pid);
 		}
 
+		// Stop due to signal case.
 		else if (WIFSTOPPED(status)) {
+
+			// Using Sio_put to format output.
 			Sio_puts("Job [");
 			Sio_putl(pid2jid(pid));
 			Sio_puts("] (");
@@ -720,9 +750,10 @@ sigchld_handler(int signum)
 			Sio_puts(") stopped by signal SIG");
 			Sio_puts(signame[WSTOPSIG(status)]);
 			Sio_puts("\n");
+
+			// Change job status to Stopped.
 			getjobpid(jobs, pid)->state = ST;
 		}
-
 	}
 }
 
@@ -732,20 +763,23 @@ sigchld_handler(int signum)
  *  to the foreground job.  
  *
  * Requires:
- *   <to be filled in by the student(s)>
+ *   "signum" is SIGINT.
  *
  * Effects:
- *   <to be filled in by the student(s)>
+ *   Catches SIGINT (ctrl-c) signals.
  */
 static void
 sigint_handler(int signum)
 {
+	// Check signum is SIGINT and avoid unused parameter warning.
 	assert(signum == SIGINT);
+
+	// Declare pid.
 	pid_t pid = fgpid(jobs);
 
-	if (pid != 0) {
+	// Send SIGINT to foreground process group.
+	if (pid != 0) 
 		kill(-pid, SIGINT);
-	}
 
 	return;
 }
@@ -755,21 +789,25 @@ sigint_handler(int signum)
  *  foreground job by sending it a SIGTSTP.  
  *
  * Requires:
- *   <to be filled in by the student(s)>
+ *   "signum" is SIGTSTP.
  *
  * Effects:
- *   <to be filled in by the student(s)>
+ *   Catches SIGTSTP (ctrl-z) signals.
  */
 static void
 sigtstp_handler(int signum)
 {
+	// Check signum is SIGTSTP and avoid unused parameter warning.
 	assert(signum == SIGTSTP);
+
+	// Declare pid.
 	pid_t pid = fgpid(jobs);
 
-	if (pid != 0) {
-		kill(-pid, SIGTSTP);
-	}
 
+	// Send SIGTSTP to foreground process group.
+	if (pid != 0) 
+		kill(-pid, SIGTSTP);
+	
 	return;
 }
 

@@ -326,9 +326,7 @@ eval(const char *cmdline)
 	bg = parseline(buf, argv);
 
 	if(argv[0] == NULL)
-	{
 		return;
-	}
 	
 	if (!builtin_cmd(argv))
 	{
@@ -342,15 +340,15 @@ eval(const char *cmdline)
 			// Child process.
 			sigprocmask(SIG_SETMASK, &prev_mask, NULL);
 			if (verbose)
-				printf("in pid == 0");
+				printf("in pid == 0\n");
 			// ‘name' is not a directory and the search path is 
 			//not NULL.
 			if ((strchr(argv[0], '/') == NULL && dir_list != NULL))
 			{
 				if (verbose)
-					printf("not a directory");
+					printf("not a directory\n");
 				setpgid(0,0);
-
+				printf("num %d\n", num_dirs);
 				for (i = 0; i < num_dirs; i++)
 				{
 					// Process th path for execution.
@@ -362,6 +360,7 @@ eval(const char *cmdline)
 
 					// Try to execute, go on to next loop iteration 
 					//if does not work
+					printf("path: %s\n",cur_path);
 					execve(cur_path, argv, environ);
 				}
 				printf("%s: Command not found!\n", argv[0]);
@@ -667,11 +666,13 @@ initpath(const char *pathstr)
 	// Set global directory list.
 	dir_list = malloc(sizeof(char *) *path_length);
 	num_dirs = path_length;
+	printf("numdirs cur is %d,", num_dirs);
 	struct ptrNode *prev;
 
 	// Copy to global list.
 	for (int i = 0; i < path_length; i++)
 	{
+		printf("loop");
 		dir_list[i] = temp_dir_list -> ptr;
 		prev = temp_dir_list;
 		temp_dir_list = temp_dir_list -> next;
@@ -685,6 +686,7 @@ initpath(const char *pathstr)
 		printf("End of initpath.\n");
 	if (verbose)
 		printf("----\n\n");
+	printf("path_length is \n%d", path_length);
 
 }
 

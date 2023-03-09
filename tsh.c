@@ -198,8 +198,8 @@ main(int argc, char **argv)
 	action.sa_flags = SA_RESTART;
 	if (sigemptyset(&action.sa_mask) < 0)
 		unix_error("sigemptyset error");
-	if (sigaddset(&action.sa_mask, SIGCHLD) == -1) 
-		unix_error("sigaddset error in main");
+	if (sigaddset(&action.sa_mask, SIGCHLD) < 0) 
+		unix_error("sigaddset error");
 	if (sigaction(SIGINT, &action, NULL) < 0)
 		unix_error("sigaction error");
 
@@ -212,8 +212,8 @@ main(int argc, char **argv)
 	action.sa_flags = SA_RESTART;
 	if (sigemptyset(&action.sa_mask) < 0)
 		unix_error("sigemptyset error");
-	if (sigaddset(&action.sa_mask, SIGCHLD) == -1) 
-		unix_error("sigaddset error in main");
+	if (sigaddset(&action.sa_mask, SIGCHLD) < 0) 
+		unix_error("sigaddset error");
 	if (sigaction(SIGTSTP, &action, NULL) < 0)
 		unix_error("sigaction error");
 
@@ -226,10 +226,10 @@ main(int argc, char **argv)
 	action.sa_flags = SA_RESTART;
 	if (sigemptyset(&action.sa_mask) < 0)
 		unix_error("sigemptyset error");
-	if (sigaddset(&action.sa_mask, SIGINT) == -1) 
-		unix_error("sigaddset error in main");
-	if (sigaddset(&action.sa_mask, SIGTSTP) == -1) 
-		unix_error("sigaddset error in main");
+	if (sigaddset(&action.sa_mask, SIGINT) < 0) 
+		unix_error("sigaddset error");
+	if (sigaddset(&action.sa_mask, SIGTSTP) < 0) 
+		unix_error("sigaddset error");
 	if (sigaction(SIGCHLD, &action, NULL) < 0)
 		unix_error("sigaction error");
 
@@ -298,13 +298,11 @@ main(int argc, char **argv)
 static void
 eval(const char *cmdline) 
 {
-	/**
-	 * Initilization
-	*/
-	char *argv[MAXARGS];	/* Argument list execve() */
-	char buf[MAXLINE];	/* Holds modified command line */
-	int bg;			/* Should the job run in bg or fg? */
-	pid_t pid;		/* Process id */
+	// Initilization.
+	char *argv[MAXARGS];	// Argument list execve().
+	char buf[MAXLINE];	// Holds modified command line.
+	int bg;			// Should the job run in bg or fg? 
+	pid_t pid;		// Process id.
 
 	/*
 	 * Parse command line and checks if it‘s a background or foreground 
@@ -313,16 +311,22 @@ eval(const char *cmdline)
 	strcpy(buf, cmdline);
 	bg = parseline(buf, argv);
 	
-	if(argv[0] == NULL)
-		return;		/* Ignore empty lines */
+	if(!argv[0])
+		return;		// Ignore empty lines.
 
 	if (!builtin_cmd(argv))
 	{
-		// Block all incoming SIGCHILD signals
+		// Block all incoming SIGCHILD signals.
 		sigset_t mask, prev_mask;
-		sigemptyset(&mask);
-		sigaddset(&mask, SIGCHLD);
-		sigprocmask(SIG_BLOCK, &mask, &prev_mask);
+		if (sigemptyset(&mask) < 0)
+			unix_error("sigemptyset error");
+		
+		if (sigaddset(&mask, SIGCHLD) < 0)
+			unix_error("sigaddset error");
+
+		if (sigprocmask(SIG_BLOCK, &mask, &prev_mask) < 0)
+			unix_error("sigprocmask error");
+		
 		pid = fork();
 
 		if (!bg) {
@@ -335,14 +339,17 @@ eval(const char *cmdline)
 			printf("[%d] (%d) %s", pid2jid(pid), pid, cmdline);
 		}
 
-		sigprocmask(SIG_SETMASK, &prev_mask, NULL); //Set mask.
-		// Print the message when the PID is not valid
-                if (pid == 0) {		/* Child runs user job */
+		//Set mask.
+		if (sigprocmask(SIG_SETMASK, &prev_mask, NULL) < 0)
+			unix_error("sigprocmask error");
+
+		// Print the message when the PID is not valid.
+                if (pid == 0) {		// Child runs user job 
 
 			setpgid(0,0);
 			
-			if (argv[0][0] == '/' 
-			    || (argv[0][0] == '.' && argv[0][1] == '/')) {
+			if (argv[0][0] == '/' ||
+			    (argv[0][0] == '.' && argv[0][1] == '/')) {
 				if (execve(argv[0], argv, environ) < 0) {
 					printf("%s: Command not found.\n", 
 					    argv[0]);
@@ -354,8 +361,6 @@ eval(const char *cmdline)
 				for (int i = 0; i < path_array_size; i++) {
 
 					char* path = strcat(path_array[i], "/");
-					// path = malloc(strlen(path_array[i]) +
-					//     2 + strlen(argv[0]));
 					strcpy(path, path_array[i]);
 					strcat(strcat(path, "/"), argv[0]);
 
@@ -369,12 +374,10 @@ eval(const char *cmdline)
 			}
 		}
 		
-		/* 
-		 *Parent waits for foreground job to terminate and then reap. 
-		 */
+		//Parent waits for foreground job to terminate and then reap.
 		if (!bg) {
 
-			//Wait for foreground job to finish execution.
+			// Wait for foreground job to finish execution.
 			waitfg(pid); 
 			return;
 		}
@@ -457,7 +460,7 @@ parseline(const char *cmdline, char **argv)
  *  it immediately.  
  *
  * Requires:
- * 	argv from parseline.
+ *   "argv" is from parseline.
  * 
  * Effects:
  *   Executes immediately if user typed a built-in command. 
@@ -469,22 +472,22 @@ parseline(const char *cmdline, char **argv)
 static bool
 builtin_cmd(char **argv) 
 {
-	if (strcmp(argv[0], "quit") == 0) {	/* quit command */
+	if (strcmp(argv[0], "quit") == 0) {	// Quit command.
 		exit(0);
 		return (true);
-	} else if (strcmp(argv[0], "jobs") == 0) {	/* jobs command */
+	} else if (strcmp(argv[0], "jobs") == 0) {	// Jobs command.
 		listjobs(jobs);
 		return (true);
-	} else if (strcmp(argv[0], "fg") == 0) {		/* fg command */
+	} else if (strcmp(argv[0], "fg") == 0) {	// fg command.
 		do_bgfg(argv);
 		return (true);
-	} else if (strcmp(argv[0], "bg") == 0) {   	/* bg command */
+	} else if (strcmp(argv[0], "bg") == 0) {   	// bg command.
 		do_bgfg(argv);
 		return (true);
-	} else if (strcmp(argv[0], "&") == 0) {	/* Ignore singleton & */
+	} else if (strcmp(argv[0], "&") == 0) {		// Ignore singleton &.
 		return (true);
 	}
-	return (false); 			/* Not a builtin command */
+	return (false); 	// Not a builtin command.
 }
 
 
@@ -591,11 +594,14 @@ waitfg(pid_t pid)
 
         // Initialization.
 	sigset_t suspend_mask, prev_mask;
-	sigemptyset(&suspend_mask);
-        sigaddset(&suspend_mask, SIGCHLD);
+	if (sigemptyset(&suspend_mask) < 0)
+		unix_error("Sigemptyset error.");
+        if (sigaddset(&suspend_mask, SIGCHLD) < 0)
+		unix_error("Sigaddset error.");
 
         // Block signal.
-        sigprocmask(SIG_BLOCK, &suspend_mask, &prev_mask);
+        if (sigprocmask(SIG_BLOCK, &suspend_mask, &prev_mask) < 0)
+		unix_error("Sigprocmask error.");
 
 	// Wait for the foreground job.
 	while (fgpid(jobs) == pid && getjobpid(jobs, pid)->state == FG) {
@@ -603,7 +609,8 @@ waitfg(pid_t pid)
 	}
 
         // Unblock signal.
-        sigprocmask(SIG_SETMASK, &prev_mask, NULL);
+        if (sigprocmask(SIG_SETMASK, &prev_mask, NULL) < 0)
+		unix_error("Sigprocmask error.");
 	return;
 }
 
@@ -620,8 +627,8 @@ waitfg(pid_t pid)
 static void
 initpath(const char *pathstr)
 {
-	char* token;			/* Points to a token */
-	int str_len = strlen(pathstr);	/* Length of the search path */
+	char* token;			// Points to a token.
+	int str_len = strlen(pathstr);	//Length of the search path.
 	int count = 0;
 	int index = 0;
 	path_array_size = 0;
@@ -633,20 +640,24 @@ initpath(const char *pathstr)
 	}
 
 	char** array = malloc(count*sizeof(char*));
-	// Splits path string according to ":" and returns the next token
+
+	// Splits path string according to ":" and returns the next token.
 	token = strtok((char * restrict) pathstr, ":");
 	
-	// Keep printing tokens while one of the 
-	//	delimiters ":" present in path string.
+	/*
+	 * Keep printing tokens while one of the delimiters ":" present 
+	 * in path string.
+	 */
 	while (token != NULL) {
 		array[index] = malloc(strlen(token) * sizeof(char));
 		strcpy(array[index], token);
 		index ++;
 		token = strtok(NULL, ":");
 	}
+
+	// Set global directory variables.
 	path_array = array;
         path_array_size = index;
-
 }
 
 /*

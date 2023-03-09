@@ -354,9 +354,9 @@ eval(const char *cmdline)
 			} else {
 				for (int i = 0; i < path_array_size; i++) {
 
-					char* path;
-					path = malloc(strlen(path_array[i]) +
-					    2 + strlen(argv[0]));
+					char* path = strcat(path_array[i], "/");
+					// path = malloc(strlen(path_array[i]) +
+					//     2 + strlen(argv[0]));
 					strcpy(path, path_array[i]);
 					strcat(strcat(path, "/"), argv[0]);
 
@@ -639,7 +639,8 @@ initpath(const char *pathstr)
 	token = strtok((char * restrict) pathstr, ":");
 	
 	while (token != NULL) {
-		array[index] = token;
+		array[index] = malloc(strlen(token) * sizeof(char));
+		strcpy(array[index], token);
 		index ++;
 		token = strtok(NULL, ":");
 	}

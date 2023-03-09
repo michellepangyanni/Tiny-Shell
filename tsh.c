@@ -3,7 +3,7 @@
  *
  * This program implements a tiny shell with job control.
  *
- * Lily Gao, qg8;
+ * <Lily Gao, qg8; Michelle Pang, yp29>
  */
 
 #define _GNU_SOURCE

@@ -3,7 +3,7 @@
  *
  * This program implements a tiny shell with job control.
  *
- * <Put your name(s) and NetID(s) here>
+ * Lily Gao, qg8;
  */
 
 #define _GNU_SOURCE
@@ -61,21 +61,9 @@ extern char **environ;             // defined by libc
 static char prompt[] = "tsh> ";    // command line prompt (DO NOT CHANGE)
 static bool verbose = false;       // If true, print additional output.
 
-/**
- * Michelle Pang made variables
-*/
-const char *search_path;
+char **path_array;		   // 
+int path_array_size;		   //
 
-/**
- * Linked list structure for directory list
-*/
-struct ptrNode
-{
-	char *ptr;
-	struct ptrNode *next;
-};
-static char **dir_list; // stores directories from search path
-static int num_dirs; // number of directories found in the search path
 /*
  * The following array can be used to map a signal number to its name.
  * This mapping is valid for x86(-64)/Linux systems, such as CLEAR.
@@ -315,13 +303,13 @@ eval(const char *cmdline)
 	*/
 	char *argv[MAXARGS];
 	char buf[MAXLINE];
-	int bg, i;
+	int bg;
 	pid_t pid;
-	sigset_t mask, prev_mask;
 
-	/**
-	 * Parse command line and checks if it‘s a background or foreground job
-	*/
+	/*
+	 * Parse command line and checks if it‘s a background or foreground 
+	 * job.
+	 */
 	strcpy(buf, cmdline);
 	bg = parseline(buf, argv);
 
@@ -331,80 +319,69 @@ eval(const char *cmdline)
 	if (!builtin_cmd(argv))
 	{
 		// Block all incoming SIGCHILD signals
+		sigset_t mask, prev_mask;
 		sigemptyset(&mask);
 		sigaddset(&mask, SIGCHLD);
 		sigprocmask(SIG_BLOCK, &mask, &prev_mask);
+		pid = fork();
 
-		if ((pid = fork()) == 0)
-		{
-			// Child process.
-			sigprocmask(SIG_SETMASK, &prev_mask, NULL);
-			if (verbose)
-				printf("in pid == 0\n");
-			// ‘name' is not a directory and the search path is 
-			//not NULL.
-			if ((strchr(argv[0], '/') == NULL && dir_list != NULL))
-			{
-				if (verbose)
-					printf("not a directory\n");
-				setpgid(0,0);
-				printf("num %d\n", num_dirs);
-				for (i = 0; i < num_dirs; i++)
-				{
-					// Process th path for execution.
-					char cur_path[strlen(dir_list[i]) + 2 + sizeof(argv[0])];
-
-					strcpy(cur_path, dir_list[i]);
-					strcat(cur_path, "/");
-					strcat(cur_path, argv[0]);
-
-					// Try to execute, go on to next loop iteration 
-					//if does not work
-					printf("path: %s\n",cur_path);
-					execve(cur_path, argv, environ);
-				}
-				printf("%s: Command not found!\n", argv[0]);
-				exit(0);
-			}
-			if (strchr(argv[0], '/') != NULL || dir_list == NULL)
-			{
-				setpgid(0, 0);
-				// Handles case when execution fails
-				//as directory is not executable.
-				if (execve(argv[0], argv, environ) < 0) 
-				{
-					printf("%s: Command not found.\n", argv[0]);
-					exit(0);
-				}
-			}
-		}
-		/* Parent waits for foreground job to terminate and then reap. */
-		if (!bg) 
-		{	
-			if (verbose)
-				printf("Inside !bg.\n");
-			// Foreground job
-			addjob(jobs, pid, FG, cmdline); //Add the job.
-			sigprocmask(SIG_SETMASK, &prev_mask, NULL); //Set mask.
-
-			waitfg(pid); //Wait for foreground job to finish execution.
-			if(verbose)
-				printf("Exit !bg.\n");
-		}
-		else
-		{
-			if (verbose)
-				printf("Inside !fg.\n");
-			// Background job.
+		if (!bg) {
+			// Foreground job.
+			addjob(jobs, pid, FG, cmdline);  //Add the job.
+		} else {
 			addjob(jobs, pid, BG, cmdline);
-			sigprocmask(SIG_SETMASK, &prev_mask, NULL); //Set mask.
+			
 			// Print job immediately.
 			printf("[%d] (%d) %s", pid2jid(pid), pid, cmdline);
-
-			if(verbose)
-				printf("Exit !fg.\n");
 		}
+
+		sigprocmask(SIG_SETMASK, &prev_mask, NULL); //Set mask.
+
+                if (pid == 0) {
+
+			setpgid(0,0);
+			/* 
+			 * Puts the child in a new process group whose 
+			 * group ID is identical to the child’s PID.
+			 */
+			if (argv[0][0] == '/' 
+			    || (argv[0][0] == '.' && argv[0][1] == '/')) {
+				if (execve(argv[0], argv, environ) < 0) {
+					printf("%s: Command not found.\n", 
+					    argv[0]);
+					exit(0);
+				}
+			} else {
+				for (int i = 0; i < path_array_size; i++) {
+
+					char* path;
+					path = malloc(strlen(path_array[i]) +
+					    2 + strlen(argv[0]));
+					strcpy(path, path_array[i]);
+					strcat(strcat(path, "/"), argv[0]);
+
+					if (execve(path, argv, argv) < 0)
+						continue;
+
+					free(path);
+				}
+				printf("%s: Command not found.\n", argv[0]);
+				exit(0);
+			}
+		}
+		
+		/* 
+		 *Parent waits for foreground job to terminate and then reap. 
+		 */
+		if (!bg) {
+
+			//Wait for foreground job to finish execution.
+			waitfg(pid); 
+			return;
+		}
+			
 	}
+	return;
 }
 
 /* 
@@ -493,26 +470,27 @@ parseline(const char *cmdline, char **argv)
 static bool
 builtin_cmd(char **argv) 
 {
-	if (!strcmp(argv[0], "quit")) /* quit command */
+	if (strcmp(argv[0], "quit") == 0) {
 		exit(0);
-		
-	if (!strcmp(argv[0], "jobs"))
-	{
+		return true;
+	} /* quit command */	
+	else if (strcmp(argv[0], "jobs") == 0) {
 		listjobs(jobs);
-		return (1);
+		return (true);
+	}
+	else if (strcmp(argv[0], "fg") == 0) {
+		do_bgfg(argv);
+		return (true);
+	} 
+	else if (strcmp(argv[0], "bg") == 0) {   /* Ignore singleton & */
+		do_bgfg(argv);
+		return (true);
+	} 
+	else if (strcmp(argv[0], "&") == 0) {
+		return (true);
 	}
 
-	if (!strcmp(argv[0], "fg")) 
-	{
-		do_bgfg(argv);
-		return (1);
-	} 
-	if (!strcmp(argv[0], "bg")) /* Ignore singleton & */
-	{
-		do_bgfg(argv);
-		return (1);
-	} 
-	return (0); /* Not a builtin command */
+	return (false); /* Not a builtin command */
 }
 
 
@@ -534,24 +512,26 @@ do_bgfg(char **argv)
 	// Initialization.
 	char *command = argv[0];
 	char *job = argv[1];
-	JobP job_point; 
+	JobP job_point = malloc(sizeof(JobP));
 
 
 	// Check existence of job.
 	if (!job) {
-		printf("lack of second command argument.");
+		printf("%s command requires PID or %%jobid argument\n", 
+		    argv[0]);
 		return;
 	}
 
+	
 	// Determine Pid or Jid.
 	if (job[0] == '%') {	// Jid
 		
 		// Get jid job.
-		job_point = getjobjid(jobs, atoi(strchr(job, '%') + 1));
+		job_point = getjobjid(jobs, atoi(&job[1]));
 
 		// Check job not null.
 		if (!job_point) {
-			printf("Not valid Jid.");
+			printf("%s: No such job\n", job);
 			return;
 		}
 	} 
@@ -562,41 +542,39 @@ do_bgfg(char **argv)
 
 		// Check job not null.
 		if (!job_point) {
-			printf("Not valid Pid.");
+			printf("(%d): No such process\n", atoi(job));
 			return;
 		}
 	} else {      // Not pid or jid.
-		printf("Not Pid or Jid.");
+		printf("%s: argument must be a PID or %%jobid\n", command);
 		return;
 	}
 
-	// Bg command: Change a stopped job to running background job.
-	if (!strcmp(command, "bg")) {
-
-		// Change job state to bg.
-		job_point->state = BG;
-
-		// Kill, send SIGCONT signal and format output.
-		kill(-job_point->pid, SIGCONT);
-		fprintf(stdout, "[%d] (%d) %s", job_point->jid, 
-		    job_point->pid, job_point->cmdline);
-	} 
-
+	// Kill, send SIGCONT signal and format output.
+  	kill(-job_point->pid,SIGCONT);
+  
 	/*
 	 * Fg command: Change a stopped or running background job to a running 
 	 * job in foreground.
 	 */
-	else if (!strcmp(command, "fg")) {
+	if (!(strcmp(command, "fg"))){
 
 		// Change job state to fg.
 		job_point->state = FG;
-
-		// Wait foreground job and kill, send SIGCONT signal.
 		waitfg(job_point->pid);
-		kill(-job_point->pid, SIGCONT);
+
+	/*
+	 * Bg command: Change a stopped job to running background job. 
+	 */
 	} else {
-		return;
+
+		// Change job state to bg.
+		job_point->state = BG;
+    		fprintf(stdout, "[%d] (%d) %s", job_point->jid, 
+	 	    job_point->pid, job_point->cmdline);
 	}
+
+  	return;
 }
 
 /* 
@@ -611,20 +589,27 @@ do_bgfg(char **argv)
 static void
 waitfg(pid_t pid)
 {
-	// Initialization.
-	sigset_t suspend_mask;
-	sigemptyset(&suspend_mask);
 
 	// Make sure the job is not null.
 	JobP job = getjobpid(jobs, pid);
 	if (!job)
 		return;
 
+        // Initialization.
+	sigset_t suspend_mask, prev_mask;
+	sigemptyset(&suspend_mask);
+        sigaddset(&suspend_mask, SIGCHLD);
+
+        // Block signal.
+        sigprocmask(SIG_BLOCK, &suspend_mask, &prev_mask);
+
 	// Wait for the foreground job.
-	while (fgpid(jobs) == pid) {
-		sigsuspend(&suspend_mask);
+	while (fgpid(jobs) == pid && getjobpid(jobs, pid)->state == FG) {
+		sigsuspend(&prev_mask);
 	}
 
+        // Unblock signal.
+        sigprocmask(SIG_SETMASK, &prev_mask, NULL);
 	return;
 }
 
@@ -641,52 +626,25 @@ waitfg(pid_t pid)
 static void
 initpath(const char *pathstr)
 {
-
-	if (verbose)
-		printf("\nEnter Function: initpath.\n");
-	if (verbose)
-		printf("----\n");
-	if(verbose)
-		printf("The Original Path: %s\n", pathstr);
-
-	int path_length = 0; //number of paths
-
-	// Mallocate a directory list using linked list structure.
-	struct ptrNode *temp_dir_list = malloc(sizeof(struct ptrNode));
-	struct ptrNode *node = temp_dir_list;
-	// Each directory is separated by ':' character.
-	if ((strlen(pathstr) == 0) || (pathstr[0] == ':') || (pathstr[strlen(pathstr) - 1] == ':'))
-	{
-		path_length ++;
-		node -> ptr = get_current_dir_name();
-		node -> next = malloc(sizeof(struct ptrNode));
-		node = node -> next;
+	char* token;
+	int str_len = strlen(pathstr);
+	int count = 0;
+	int index = 0;
+	path_array_size = 0;
+	for(int i = 0; i < str_len; i++) {
+		if (pathstr[i] == ':')
+			count ++;
 	}
-
-	// Set global directory list.
-	dir_list = malloc(sizeof(char *) *path_length);
-	num_dirs = path_length;
-	printf("numdirs cur is %d,", num_dirs);
-	struct ptrNode *prev;
-
-	// Copy to global list.
-	for (int i = 0; i < path_length; i++)
-	{
-		printf("loop");
-		dir_list[i] = temp_dir_list -> ptr;
-		prev = temp_dir_list;
-		temp_dir_list = temp_dir_list -> next;
-		free(prev);
+	char** array = malloc(count*sizeof(char*));
+	token = strtok((char * restrict) pathstr, ":");
+	
+	while (token != NULL) {
+		array[index] = token;
+		index ++;
+		token = strtok(NULL, ":");
 	}
-
-	// Set global search path.
-	search_path = pathstr;
-
-	if (verbose)
-		printf("End of initpath.\n");
-	if (verbose)
-		printf("----\n\n");
-	printf("path_length is \n%d", path_length);
+	path_array = array;
+        path_array_size = index;
 
 }
 

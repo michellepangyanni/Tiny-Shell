@@ -61,8 +61,8 @@ extern char **environ;             // defined by libc
 static char prompt[] = "tsh> ";    // command line prompt (DO NOT CHANGE)
 static bool verbose = false;       // If true, print additional output.
 
-char **path_array;		   // 
-int path_array_size;		   //
+char **path_array;		   // store the path directories
+int path_array_size;		   // size of the path_array
 
 /*
  * The following array can be used to map a signal number to its name.
@@ -301,10 +301,10 @@ eval(const char *cmdline)
 	/**
 	 * Initilization
 	*/
-	char *argv[MAXARGS];
-	char buf[MAXLINE];
-	int bg;
-	pid_t pid;
+	char *argv[MAXARGS];	/* Argument list execve() */
+	char buf[MAXLINE];	/* Holds modified command line */
+	int bg;			/* Should the job run in bg or fg? */
+	pid_t pid;		/* Process id */
 
 	/*
 	 * Parse command line and checks if it‘s a background or foreground 
@@ -312,10 +312,10 @@ eval(const char *cmdline)
 	 */
 	strcpy(buf, cmdline);
 	bg = parseline(buf, argv);
-
-	if(argv[0] == NULL)
-		return;
 	
+	if(argv[0] == NULL)
+		return;		/* Ignore empty lines */
+
 	if (!builtin_cmd(argv))
 	{
 		// Block all incoming SIGCHILD signals
@@ -336,14 +336,11 @@ eval(const char *cmdline)
 		}
 
 		sigprocmask(SIG_SETMASK, &prev_mask, NULL); //Set mask.
-
-                if (pid == 0) {
+		// Print the message when the PID is not valid
+                if (pid == 0) {		/* Child runs user job */
 
 			setpgid(0,0);
-			/* 
-			 * Puts the child in a new process group whose 
-			 * group ID is identical to the child’s PID.
-			 */
+			
 			if (argv[0][0] == '/' 
 			    || (argv[0][0] == '.' && argv[0][1] == '/')) {
 				if (execve(argv[0], argv, environ) < 0) {
@@ -352,6 +349,8 @@ eval(const char *cmdline)
 					exit(0);
 				}
 			} else {
+				// Separate directories in a path to run user
+				// job.
 				for (int i = 0; i < path_array_size; i++) {
 
 					char* path = strcat(path_array[i], "/");
@@ -470,27 +469,22 @@ parseline(const char *cmdline, char **argv)
 static bool
 builtin_cmd(char **argv) 
 {
-	if (strcmp(argv[0], "quit") == 0) {
+	if (strcmp(argv[0], "quit") == 0) {	/* quit command */
 		exit(0);
-		return true;
-	} /* quit command */	
-	else if (strcmp(argv[0], "jobs") == 0) {
+		return (true);
+	} else if (strcmp(argv[0], "jobs") == 0) {	/* jobs command */
 		listjobs(jobs);
 		return (true);
-	}
-	else if (strcmp(argv[0], "fg") == 0) {
+	} else if (strcmp(argv[0], "fg") == 0) {		/* fg command */
 		do_bgfg(argv);
 		return (true);
-	} 
-	else if (strcmp(argv[0], "bg") == 0) {   /* Ignore singleton & */
+	} else if (strcmp(argv[0], "bg") == 0) {   	/* bg command */
 		do_bgfg(argv);
 		return (true);
-	} 
-	else if (strcmp(argv[0], "&") == 0) {
+	} else if (strcmp(argv[0], "&") == 0) {	/* Ignore singleton & */
 		return (true);
 	}
-
-	return (false); /* Not a builtin command */
+	return (false); 			/* Not a builtin command */
 }
 
 
@@ -626,18 +620,24 @@ waitfg(pid_t pid)
 static void
 initpath(const char *pathstr)
 {
-	char* token;
-	int str_len = strlen(pathstr);
+	char* token;			/* Points to a token */
+	int str_len = strlen(pathstr);	/* Length of the search path */
 	int count = 0;
 	int index = 0;
 	path_array_size = 0;
-	for(int i = 0; i < str_len; i++) {
+
+	// Count the number of the directories in the path.
+	for(int i = 0; i < str_len; i++) { 
 		if (pathstr[i] == ':')
 			count ++;
 	}
+
 	char** array = malloc(count*sizeof(char*));
+	// Splits path string according to ":" and returns the next token
 	token = strtok((char * restrict) pathstr, ":");
 	
+	// Keep printing tokens while one of the 
+	//	delimiters ":" present in path string.
 	while (token != NULL) {
 		array[index] = malloc(strlen(token) * sizeof(char));
 		strcpy(array[index], token);

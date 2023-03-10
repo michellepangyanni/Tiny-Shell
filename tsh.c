@@ -757,6 +757,9 @@ sigint_handler(int signum)
 	// Check signum is SIGINT and avoid unused parameter warning.
 	assert(signum == SIGINT);
 
+	// Save errno;
+	int olderrno = errno;
+
 	// Declare pid.
 	pid_t pid = fgpid(jobs);
 
@@ -764,6 +767,8 @@ sigint_handler(int signum)
 	if (pid != 0) 
 		kill(-pid, SIGINT);
 
+	// Restore errno;
+	errno = olderrno;
 	return;
 }
 /*
@@ -783,6 +788,9 @@ sigtstp_handler(int signum)
 	// Check signum is SIGTSTP and avoid unused parameter warning.
 	assert(signum == SIGTSTP);
 
+	// Save errno;
+	int olderrno = errno;
+
 	// Declare pid.
 	pid_t pid = fgpid(jobs);
 
@@ -790,7 +798,9 @@ sigtstp_handler(int signum)
 	// Send SIGTSTP to foreground process group.
 	if (pid != 0) 
 		kill(-pid, SIGTSTP);
-	
+		
+	// Restore errno;
+	errno = olderrno;
 	return;
 }
 

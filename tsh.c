@@ -355,11 +355,14 @@ eval(const char *cmdline)
 					exit(0);
 				}
 			} else {
-				/*Separate directories in a path to run user
-				job.*/
+				/*
+				 * Separate directories in a path to run user
+				 * job.
+				 */
 				for (int i = 0; i < path_array_size; i++) {
 
-					char* path = strcat(path_array[i], "/");
+					char* path = strcat(path_array[i], 
+					    "/");
 					strcpy(path, path_array[i]);
 					strcat(strcat(path, "/"), argv[0]);
 

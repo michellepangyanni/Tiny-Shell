@@ -5,4 +5,34 @@ COMP 321 Project 4: Unix Shell
 
 TESTING STRATEGY
 
-<Replace with a detailed description of your testing strategy.>
+<
+eval, initpath, builtin. 主要是search path
+1. Input a invalid PID to test that 
+>
+(
+NOTES:
+5-10: 
+empty string in path
+current directory is in the path
+invalid input -> command not found
+invalid pid, jid, 
+the code switch between background and foreground correctly
+
+1. edge case 2. input to that code 3. what code is testing 
+
+errors 
+wrong command
+reference solution behavior 
+more test cases and why include it
+
+eg. 
+pass an input that does not exit either in current d or d path
+when enter a nonexitent bgfg. 
+
+strange behavior in reference solution. 
+
+test input a path that does not start with . or /.
+write as much as possible. 
+20 + . 
+invalid jid, include both alphebet and number. )
+

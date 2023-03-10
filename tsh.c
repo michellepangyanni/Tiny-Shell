@@ -314,8 +314,7 @@ eval(const char *cmdline)
 	if(!argv[0])
 		return;		// Ignore empty lines.
 
-	if (!builtin_cmd(argv))
-	{
+	if (!builtin_cmd(argv)) {
 		// Block all incoming SIGCHILD signals.
 		sigset_t mask, prev_mask;
 		if (sigemptyset(&mask) < 0)
@@ -475,16 +474,20 @@ builtin_cmd(char **argv)
 	if (strcmp(argv[0], "quit") == 0) {	// Quit command.
 		exit(0);
 		return (true);
-	} else if (strcmp(argv[0], "jobs") == 0) {	// Jobs command.
+	} 
+	else if (strcmp(argv[0], "jobs") == 0) {	// Jobs command.
 		listjobs(jobs);
 		return (true);
-	} else if (strcmp(argv[0], "fg") == 0) {	// fg command.
+	} 
+	else if (strcmp(argv[0], "fg") == 0) {	// fg command.
 		do_bgfg(argv);
 		return (true);
-	} else if (strcmp(argv[0], "bg") == 0) {   	// bg command.
+	} 
+	else if (strcmp(argv[0], "bg") == 0) {   	// bg command.
 		do_bgfg(argv);
 		return (true);
-	} else if (strcmp(argv[0], "&") == 0) {		// Ignore singleton &.
+	} 
+	else if (strcmp(argv[0], "&") == 0) {		// Ignore singleton &.
 		return (true);
 	}
 	return (false); 	// Not a builtin command.
@@ -798,7 +801,7 @@ sigtstp_handler(int signum)
 	// Send SIGTSTP to foreground process group.
 	if (pid != 0) 
 		kill(-pid, SIGTSTP);
-		
+
 	// Restore errno;
 	errno = olderrno;
 	return;

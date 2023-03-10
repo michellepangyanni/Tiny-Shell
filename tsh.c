@@ -59,7 +59,7 @@ static int nextjid = 1;            // next job ID to allocate
 extern char **environ;             // defined by libc
 
 static char prompt[] = "tsh> ";    // command line prompt (DO NOT CHANGE)
-static bool verbose = false;       // If true, print additional output.
+static bool verbose = false;       // if true, print additional output
 
 char **path_array;		   // store the path directories
 int path_array_size;		   // size of the path_array
@@ -356,8 +356,8 @@ eval(const char *cmdline)
 					exit(0);
 				}
 			} else {
-				// Separate directories in a path to run user
-				// job.
+				/*Separate directories in a path to run user
+				job.*/
 				for (int i = 0; i < path_array_size; i++) {
 
 					char* path = strcat(path_array[i], "/");
@@ -542,7 +542,8 @@ do_bgfg(char **argv)
 			printf("(%d): No such process\n", atoi(job));
 			return;
 		}
-	} else {      // Not pid or jid.
+	} else {
+		// Not pid or jid.
 		printf("%s: argument must be a PID or %%jobid\n", command);
 		return;
 	}
@@ -554,7 +555,7 @@ do_bgfg(char **argv)
 	 * Fg command: Change a stopped or running background job to a running 
 	 * job in foreground.
 	 */
-	if (!(strcmp(command, "fg"))){
+	if (!(strcmp(command, "fg"))) {
 
 		// Change job state to fg.
 		job_point->state = FG;
@@ -628,7 +629,7 @@ static void
 initpath(const char *pathstr)
 {
 	char* token;			// Points to a token.
-	int str_len = strlen(pathstr);	//Length of the search path.
+	int str_len = strlen(pathstr);	// Length of the search path.
 	int count = 0;
 	int index = 0;
 	path_array_size = 0;

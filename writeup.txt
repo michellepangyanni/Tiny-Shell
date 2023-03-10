@@ -88,6 +88,7 @@ White Box Testing
 
 <
 MICHELLE's NOTES
+****//You need only explain what part of your code is tested by each case.//****
 eval, initpath, builtin. 主要是search path
 1. Input a invalid PID to test that 
 (

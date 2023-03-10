@@ -330,7 +330,7 @@ eval(const char *cmdline)
 
 		if (!bg) {
 			// Foreground job.
-			addjob(jobs, pid, FG, cmdline);  //Add the job.
+			addjob(jobs, pid, FG, cmdline);  // Add the job.
 		} else {
 			addjob(jobs, pid, BG, cmdline);
 			
@@ -338,12 +338,12 @@ eval(const char *cmdline)
 			printf("[%d] (%d) %s", pid2jid(pid), pid, cmdline);
 		}
 
-		//Set mask.
+		// Set mask.
 		if (sigprocmask(SIG_SETMASK, &prev_mask, NULL) < 0)
 			unix_error("sigprocmask error");
 
 		// Print the message when the PID is not valid.
-                if (pid == 0) {		// Child runs user job 
+                if (pid == 0) {		// Child runs user job.
 
 			setpgid(0,0);
 			
@@ -376,7 +376,7 @@ eval(const char *cmdline)
 			}
 		}
 		
-		//Parent waits for foreground job to terminate and then reap.
+		// Parent waits for foreground job to terminate and then reap.
 		if (!bg) {
 
 			// Wait for foreground job to finish execution.
@@ -577,7 +577,6 @@ do_bgfg(char **argv)
     		fprintf(stdout, "[%d] (%d) %s", job_point->jid, 
 	 	    job_point->pid, job_point->cmdline);
 	}
-
   	return;
 }
 
@@ -763,7 +762,7 @@ sigint_handler(int signum)
 	// Check signum is SIGINT and avoid unused parameter warning.
 	assert(signum == SIGINT);
 
-	// Save errno;
+	// Save errno.
 	int olderrno = errno;
 
 	// Declare pid.
@@ -773,7 +772,7 @@ sigint_handler(int signum)
 	if (pid != 0) 
 		kill(-pid, SIGINT);
 
-	// Restore errno;
+	// Restore errno.
 	errno = olderrno;
 	return;
 }
@@ -794,7 +793,7 @@ sigtstp_handler(int signum)
 	// Check signum is SIGTSTP and avoid unused parameter warning.
 	assert(signum == SIGTSTP);
 
-	// Save errno;
+	// Save errno.
 	int olderrno = errno;
 
 	// Declare pid.
@@ -805,7 +804,7 @@ sigtstp_handler(int signum)
 	if (pid != 0) 
 		kill(-pid, SIGTSTP);
 
-	// Restore errno;
+	// Restore errno.
 	errno = olderrno;
 	return;
 }

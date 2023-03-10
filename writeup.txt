@@ -8,10 +8,10 @@ TESTING STRATEGY
 White Box Testing
 1. Test that the kernel can properly send a SIGINT to the shell.
    eg. type ctrl-c at the keyboard.
-   Code: Line 760 - 778.
+   Code: Line 760 - 778 & Line 197 - 204.
 2. Test that the kernel can properly send a SIGTSTP to the shell.
    eg. type ctrl-z at the keyboard.
-   Code: Line 791 - 809.
+   Code: Line 791 - 809 & Line 211 - 218.
 3. Test that the error handling is correct when missing PID or jid argument 
    after fg command.
    eg. type fg.
@@ -42,7 +42,7 @@ White Box Testing
    Code: Line 536 - 539 (Line 536 will evaluate to true.)
 11. Test the case that the command line is empty.
     eg. type nothing in shell.
-    Code:
+    Code: 
 12. Test the case that an invalid path name of an executable program 
     is given in the command line.
     eg. 
@@ -56,6 +56,19 @@ White Box Testing
 15. Test the case that one of the directories is the current directory
     eg.
     Code:
+16. Test execution of built-in command.
+    eg. type quit; type jobs; type fg; type bg 
+    (These are covered by trace files.)
+    Code: Line 477 - 492.
+17. Test execution of built-in command of sigleton &.
+    eg. type &.
+    Code: Line 493 - 495.
+18. Test a command that is not a built-in command.
+    eg. type back; type *.
+    Code: Line 496 &
+          Line 352 - 356 (if statement in Line 352 will evaluate to true.) 
+
+
 
 
 <

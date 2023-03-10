@@ -40,50 +40,22 @@ White Box Testing
 10. Test that job cannot be identified by an invalid jid.
    eg. type fg %99999999999; type bg %999999999999.
    Code: Line 536 - 539 (Line 536 will evaluate to true.)
-
--Edge Case: The command line is only bg, with no other argument (no job or
-        process ID is given)
-        Will pass in a command line of only "fg" which executes the
-        second if statement in do_bgfg.
--Edge Case: The command line is only fg, with no other argument (no job or
-        process ID is given)
-        Will pass in a command line of only "fg" which executes the
-        second if statement in do_bgfg.
--Edge Case: A bg command is given with an invalid process ID number
-        Will pass in a command line with an invalid process ID which executes
-        the first nested if statement in the first else statment in do_bgfg
--Edge Case: A fg command is given with an invalid process ID number
-        Will pass in a command line with an invalid process ID which executes
-        the first nested if statement in the first else statment in do_bgfg
--Edge Case: A bg command is given with an invalid job ID number
-        Will pass in a command line with an invalid job ID which executes
-        the second nested if statement in the first else statement in do_bgfg
--Edge Case: A fg command is given with an invalid job ID number
-        Will pass in a command line with an invalid job ID which executes
-        the second nested if statement in the first else statement in do_bgfg
--Edge Case: A bg/fg command is given with neither a job nor a process ID
-        (ex. bg bogus)
-        Will pass in a command line that is "bg bogus" which executes the else
-        statement in the else statment in do_bgfg
--Edge Case: The command line is empty
-        Will pass in a command line that is empty which executes the first
-        if-statement in eval
--Edge Case: An invalid path name of an executable program is given in the
-        command line
-        Will pass in a path that is invalid in the command line which executes
-        the first if statement in the second if statement in the second if
-        statement in eval
--Edge Case: An invalid executable name is given in the command line
-        Will pass in an executable name that is invalid (ex. bogus) which
-        executes the else statement in the second if statement in the second if
-        statement in eval
--Edge Case: The list of directories is empty.
-        Will pass in an empty list of directories which will execute the while
-        loop in initpath
--Edge Case: One of the directories is the current directory
-        Will pass in the current directory in the list of directories,
-        which will execute the for loop in the else statement in the second if 
-        statement in eval
+11. Test the case that the command line is empty.
+    eg. type nothing in shell.
+    Code:
+12. Test the case that an invalid path name of an executable program 
+    is given in the command line.
+    eg. 
+    Code:
+13. Test the case that an invalid executable name is given in the command line
+    eg. 
+    Code:
+14. Test the case that the list of directories is empty.
+    eg.
+    Code:
+15. Test the case that one of the directories is the current directory
+    eg.
+    Code:
 
 
 <

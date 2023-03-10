@@ -687,6 +687,7 @@ sigchld_handler(int signum)
 	// Initialization.
 	pid_t pid;
 	int status;
+	int olderrno = errno;
 
 	// Reap all zombie children.
 	while ((pid = waitpid(-1, &status, WNOHANG | WUNTRACED)) > 0) {
@@ -727,6 +728,15 @@ sigchld_handler(int signum)
 			getjobpid(jobs, pid)->state = ST;
 		}
 	}
+
+	// Check waitpid error, termination if there are no more children.
+	if (errno != ECHILD && pid == -1) {
+		unix_error("waitpid error");
+		return;
+	}
+	
+	errno = olderrno;
+	return;
 }
 
 /* 

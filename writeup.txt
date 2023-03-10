@@ -1,14 +1,95 @@
 COMP 321 Project 4: Unix Shell
-<Replace with your name(s) and NetID(s).>
+<Lily Gao, qg8; Michelle Pang, yp29>
 
 ---(Do not write lines of text that exceed the width of this line.)------------
 
 TESTING STRATEGY
 
+White Box Testing
+1. Test that the kernel can properly send a SIGINT to the shell.
+   eg. type ctrl-c at the keyboard.
+   Code: Line 760 - 778.
+2. Test that the kernel can properly send a SIGTSTP to the shell.
+   eg. type ctrl-z at the keyboard.
+   Code: Line 791 - 809.
+3. Test that the error handling is correct when missing PID or jid argument 
+   after fg command.
+   eg. type fg.
+   Code: Line 522 - 526. (if statement in line 522)
+4. Test that the error handling is correct when missing PID or jid argument 
+   after bg command.
+   eg. type bg.
+   Code: Line 522 - 526. (if statement in line 522)
+5. Test that the error handling is correct when fg is not followed by a valid
+   PID or jid.
+   eg. type fg a; type fg *.
+   Code: Line 551 - 555 (else statement in line 551)
+6. Test that the error handling is correct when bg is not followed by a valid
+   PID or jid.
+   eg. type bg a; type bg *.
+   Code: Line 551 - 555 (else statement in line 551)
+7. Test that job can be identified by a valid PID.
+   eg. type fg 1; type fg 5; type bg 1; type bg 5.
+   Code: Line 541 - 550 (Line 544 will perform correctly.)
+8. Test that job cannot be identified by an invalid PID.
+   eg. type fg 99999999999; type bg 999999999999.
+   Code: Line 547 - 550 (Line 547 will evaluate to true.)
+9. Test that job can be identified by a valid jid.
+   eg. type fg %1; type fg %5; type bg %1; type bg %5.
+   Code: Line 530 - 540 (Line 533 will perform correctly.)
+10. Test that job cannot be identified by an invalid jid.
+   eg. type fg %99999999999; type bg %999999999999.
+   Code: Line 536 - 539 (Line 536 will evaluate to true.)
+
+-Edge Case: The command line is only bg, with no other argument (no job or
+        process ID is given)
+        Will pass in a command line of only "fg" which executes the
+        second if statement in do_bgfg.
+-Edge Case: The command line is only fg, with no other argument (no job or
+        process ID is given)
+        Will pass in a command line of only "fg" which executes the
+        second if statement in do_bgfg.
+-Edge Case: A bg command is given with an invalid process ID number
+        Will pass in a command line with an invalid process ID which executes
+        the first nested if statement in the first else statment in do_bgfg
+-Edge Case: A fg command is given with an invalid process ID number
+        Will pass in a command line with an invalid process ID which executes
+        the first nested if statement in the first else statment in do_bgfg
+-Edge Case: A bg command is given with an invalid job ID number
+        Will pass in a command line with an invalid job ID which executes
+        the second nested if statement in the first else statement in do_bgfg
+-Edge Case: A fg command is given with an invalid job ID number
+        Will pass in a command line with an invalid job ID which executes
+        the second nested if statement in the first else statement in do_bgfg
+-Edge Case: A bg/fg command is given with neither a job nor a process ID
+        (ex. bg bogus)
+        Will pass in a command line that is "bg bogus" which executes the else
+        statement in the else statment in do_bgfg
+-Edge Case: The command line is empty
+        Will pass in a command line that is empty which executes the first
+        if-statement in eval
+-Edge Case: An invalid path name of an executable program is given in the
+        command line
+        Will pass in a path that is invalid in the command line which executes
+        the first if statement in the second if statement in the second if
+        statement in eval
+-Edge Case: An invalid executable name is given in the command line
+        Will pass in an executable name that is invalid (ex. bogus) which
+        executes the else statement in the second if statement in the second if
+        statement in eval
+-Edge Case: The list of directories is empty.
+        Will pass in an empty list of directories which will execute the while
+        loop in initpath
+-Edge Case: One of the directories is the current directory
+        Will pass in the current directory in the list of directories,
+        which will execute the for loop in the else statement in the second if 
+        statement in eval
+
+
 <
+MICHELLE's NOTES
 eval, initpath, builtin. 主要是search path
 1. Input a invalid PID to test that 
->
 (
 NOTES:
 5-10: 
@@ -35,4 +116,5 @@ test input a path that does not start with . or /.
 write as much as possible. 
 20 + . 
 invalid jid, include both alphebet and number. )
+>
 

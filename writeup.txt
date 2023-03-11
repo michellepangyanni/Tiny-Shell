@@ -45,20 +45,24 @@ White Box Testing
 11. Test the case that the command line is empty, tiny shell should 
     ignore empty lines. 
     eg. type nothing in shell.
-    Code: Line 314 - 315
+    Code: Line 314 - 315 in eval(), which ignore empty lines.
 12. Test the case that an invalid path name of an executable program 
     is given in the command line.
     eg. tsh> -bin/csh, tsh> ./myspin
-    Code: Line 374 - 375.
+    Code: Line 374 - 375 in eval(), which print error message "Command not
+    found" when the path name is invalid in command line.
 13. Test the case that an invalid executable name is given in the command line
     eg. tsh> /bin/echo1
-    Code: Line 350 - 354
+    Code: Line 350 - 354 in eval(), which print error message "Command not
+    found" when a executable name is invalid in command line.
 14. Test the case that the list of directories is empty.
     eg. tsh> / / /
-    Code: 362 - 375
+    Code: Line 643 - 645 in initpath(), which counts the number of
+    directories based on the delimiter ":".
 15. Test the case that one of the directories is the current directory
     eg. tsh> pwd 
-    Code: Line 362 - 372
+    Code: Line 362 - 372 in eval(), which separate directroes in a path
+    to run user job.
 16. Test execution of built-in command.
     eg. type quit; type jobs; type fg; type bg 
     (These are covered by trace files.)
@@ -84,14 +88,14 @@ White Box Testing
     Code: Line 564 - 568.
 23. Test the functionality of eval.
     eg. all combination of program and built-in command described 
-          above and below, since all command argument will run through
-          eval.
+        above and below, since all command argument will run through
+        eval.
     Code: Line 299 - 388.
 24. Test the functionality of waitfg.
     eg. Send another foreground job while there is one foreground job running.
-           type quit quit.
-           Explanation: quit is a foreground job. While the first quit is 
-           executing, the second quit is waiting. 
+        type quit quit.
+    Explanation: quit is a foreground job. While the first quit is 
+        executing, the second quit is waiting. 
     Code: Line 593 - 621.
 25. Test the case when the executable file path name starts with a "."
     eg. type ./tsh

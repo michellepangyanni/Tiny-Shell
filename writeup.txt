@@ -103,4 +103,16 @@ White Box Testing
     in the current directory.
     eg. go to clear home directory and type shell-michellepangyanni/tsh.
     Code: Line 350 - 356.
-
+28. Test the case that the search path contains an empty string, 
+    this should be interpreted as the current directory being
+    located in the search path.
+    Code: Not enter for loop in line 643. 
+29. Test the case when there are two ":" in a row in the search path,
+    or the path starts or ends with the “:” character, the
+    search path should be loaded when the program is initialized.
+    Code: Line 634 - 666.
+30. Test a valid search path where each directory is separated by
+    the “:” character.
+    Code: Line 634 - 666.
+31. Test the case when the search path contains empty string. 
+    Code: Line 634 - 666.

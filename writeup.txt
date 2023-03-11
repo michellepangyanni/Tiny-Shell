@@ -1,0 +1,106 @@
+
+
+COMP 321 Project 4: Unix Shell
+<Lily Gao, qg8; Michelle Pang, yp29>
+
+---(Do not write lines of text that exceed the width of this line.)------------
+
+TESTING STRATEGY
+
+White Box Testing
+1. Test that the kernel can properly send a SIGINT to the shell.
+   eg. type ctrl-c at the keyboard.
+   Code: Line 760 - 778.
+2. Test that the kernel can properly send a SIGTSTP to the shell.
+   eg. type ctrl-z at the keyboard.
+   Code: Line 791 - 809.
+3. Test that the error handling is correct when missing PID or jid argument 
+   after fg command.
+   eg. type fg.
+   Code: Line 522 - 526. (if statement in line 522)
+4. Test that the error handling is correct when missing PID or jid argument 
+   after bg command.
+   eg. type bg.
+   Code: Line 522 - 526. (if statement in line 522)
+5. Test that the error handling is correct when fg is not followed by a valid
+   PID or jid.
+   eg. type fg a; type fg *.
+   Code: Line 551 - 555 (else statement in line 551)
+6. Test that the error handling is correct when bg is not followed by a valid
+   PID or jid.
+   eg. type bg a; type bg *.
+   Code: Line 551 - 555 (else statement in line 551)
+7. Test that job can be identified by a valid PID.
+   eg. type fg 1; type fg 5; type bg 1; type bg 5.
+   Code: Line 541 - 550 (Line 544 will perform correctly.)
+8. Test that job cannot be identified by an invalid PID.
+   eg. type fg 99999999999; type bg 999999999999.
+   Code: Line 547 - 550 (Line 547 will evaluate to true.)
+9. Test that job can be identified by a valid jid.
+   eg. type fg %1; type fg %5; type bg %1; type bg %5.
+   Code: Line 530 - 540 (Line 533 will perform correctly.)
+10. Test that job cannot be identified by an invalid jid.
+   eg. type fg %99999999999; type bg %999999999999.
+   Code: Line 536 - 539 (Line 536 will evaluate to true.)
+11. Test the case that the command line is empty, tiny shell should 
+    ignore empty lines. 
+    eg. type nothing in shell.
+    Code: Line 314 - 315
+12. Test the case that an invalid path name of an executable program 
+    is given in the command line.
+    eg. tsh> -bin/csh, tsh> ./myspin
+    Code: Line 374 - 375.
+13. Test the case that an invalid executable name is given in the command line
+    eg. tsh> /bin/echo1
+    Code: Line 350 - 354
+14. Test the case that the list of directories is empty.
+    eg. tsh> / / /
+    Code: 362 - 375
+15. Test the case that one of the directories is the current directory
+    eg. tsh> pwd 
+    Code: Line 362 - 372
+16. Test execution of built-in command.
+    eg. type quit; type jobs; type fg; type bg 
+    (These are covered by trace files.)
+    Code: Line 477 - 492.
+17. Test execution of built-in command of sigleton &.
+    eg. type &.
+    Code: Line 493 - 495.
+18. Test a command that is not a built-in command.
+    eg. type back; type *.
+    Code: Line 496 &
+          Line 352 - 356 (if statement in Line 352 will evaluate to true.) 
+19. Test the case when we runs the program in the foreground.
+    eg. tsh> /bin/ls -l -d
+    Code: Line 331- 333.
+20. Test the case when we runs the program in the background.
+    eg. tsh> /bin/ls -l -d &
+    Code: Line 334 - 338.
+21. Test the case when we restart a job and runs it in background.
+    eg. /bin/echo tsh> bg %1; /bin/echo tsh>  bg 1
+    Code: Line 573 - 579.
+22. Test the case when we restart a job and runs it in foreground.
+    eg. /bin/echo tsh> fg %1; /bin/echo tsh> fg 1
+    Code: Line 564 - 568.
+23. Test the functionality of eval.
+    eg. all combination of program and built-in command described 
+          above and below, since all command argument will run through
+          eval.
+    Code: Line 299 - 388.
+24. Test the functionality of waitfg.
+    eg. Send another foreground job while there is one foreground job running.
+           type quit quit.
+           Explanation: quit is a foreground job. While the first quit is 
+           executing, the second quit is waiting. 
+    Code: Line 593 - 621.
+25. Test the case when the executable file path name starts with a "."
+    eg. type ./tsh
+    Code: Line 350 - 356.
+26. Test the case when the executable file path name starts with a "/"
+    eg. type /usr/bin/ls
+    Code: Line 350 - 356.
+27. Test the case when the executable file path name is a subdirectory 
+    in the current directory.
+    eg. go to clear home directory and type shell-michellepangyanni/tsh.
+    Code: Line 350 - 356.
+
